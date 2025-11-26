@@ -4,7 +4,12 @@ import com.rentcar.app.dto.LoginRequest;
 import com.rentcar.app.dto.LoginResponse;
 import com.rentcar.app.model.User;
 import com.rentcar.app.repository.UserRepository;
+import com.rentcar.app.security.JwtUtil;
+import com.rentcar.app.security.MyUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -13,19 +18,30 @@ import java.util.Optional;
 public class AuthService {
 
     @Autowired
+    private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private MyUserDetailsService userDetailsService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
     private UserRepository userRepository;
 
     public Optional<LoginResponse> login(LoginRequest loginRequest) {
-        Optional<User> userOptional = userRepository.findByEmail(loginRequest.getUsername());
-        if (userOptional.isPresent()) {
-            User user = userOptional.get();
-            // No password encryption for now, as requested
-            if (user.getPassword_hash().equals(loginRequest.getPassword())) {
-                // Dummy token
-                String token = "dummy-jwt-token-for-" + user.getEmail();
-                return Optional.of(new LoginResponse(token, user.getId()));
-            }
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword())
+            );
+        } catch (Exception e) {
+            return Optional.empty();
         }
-        return Optional.empty();
+
+        final UserDetails userDetails = userDetailsService.loadUserByUsername(loginRequest.getUsername());
+        final String jwt = jwtUtil.generateToken(userDetails);
+
+        Optional<User> user = userRepository.findByEmail(loginRequest.getUsername());
+        return user.map(value -> new LoginResponse(jwt, value.getId()));
     }
 }

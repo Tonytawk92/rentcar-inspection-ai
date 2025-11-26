@@ -1,0 +1,7 @@
+/workspaces/rentcar-inspection-ai/rentcar-backend/src/main/java/com/rentcar/app/dto/LoginResponse.java
+/workspaces/rentcar-inspection-ai/rentcar-backend/src/main/java/com/rentcar/app/repository/UserRepository.java
+/workspaces/rentcar-inspection-ai/rentcar-backend/src/main/java/com/rentcar/app/controller/AuthController.java
+/workspaces/rentcar-inspection-ai/rentcar-backend/src/main/java/com/rentcar/app/model/User.java
+/workspaces/rentcar-inspection-ai/rentcar-backend/src/main/java/com/rentcar/app/service/AuthService.java
+/workspaces/rentcar-inspection-ai/rentcar-backend/src/main/java/com/rentcar/app/dto/LoginRequest.java
+/workspaces/rentcar-inspection-ai/rentcar-backend/src/main/java/com/rentcar/app/RentcarBackendApplication.java

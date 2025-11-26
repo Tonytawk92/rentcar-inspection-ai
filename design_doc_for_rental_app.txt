@@ -1,0 +1,434 @@
+AI-Powered Car Rental Platform Design Document
+Project: Car Rental Condition Assessment
+Version: 1.1 (Updated Image Storage)
+Date: November 14, 2025
+Technology Stack: Java (Spring Boot/Maven), MySQL, Angular, Gemini API
+1. System Goals and Architecture
+1.1 Project Goals
+The primary goal is to create a secure, multi-step web application that facilitates the vehicle pickup (rent) and return processes. The system leverages the Gemini API for critical image and data validation at each stage, ensuring the correct vehicle is rented/returned and its condition is documented accurately.
+1.2 Architecture Overview
+The system follows a standard Three-Tier Architecture:
+1. Presentation Tier (Frontend): Angular (Single Page Application)
+   * Handles UI, routing, and user interaction.
+   * Communicates with the backend via RESTful APIs.
+2. Application Tier (Backend): Java (Spring Boot/Maven)
+   * Provides secure RESTful APIs.
+   * Handles business logic, database transactions, and integration with the Gemini API.
+3. Data Tier (Database): MySQL
+   * Persists all application data (User, Car, Rental, Agent, Images).
+   * Stores images directly as LONGBLOB in a dedicated table.
+4. AI Service: Google Gemini API
+   * Used for image recognition and validation (e.g., confirming the photo angle, matching license plates).
+   * Used for the final damage assessment comparison (Pick-up vs. Return photos).
+2. Data Model (MySQL Schema)
+The database will consist of five main tables, with defined relationships:
+2.1 Table: USER
+Field
+	Data Type
+	Constraint
+	Description
+	id
+	BIGINT
+	PK, Auto-Increment
+	Unique User ID
+	email
+	VARCHAR(255)
+	UNIQUE
+	User login username
+	password_hash
+	VARCHAR(255)
+	NOT NULL
+	Hashed password
+	phone_number
+	VARCHAR(20)
+	
+
+	User's contact phone number
+	first_name
+	VARCHAR(100)
+	
+
+	
+
+	last_name
+	VARCHAR(100)
+	
+
+	
+
+	created_at
+	DATETIME
+	
+
+	
+
+	2.2 Table: AGENT
+Field
+	Data Type
+	Constraint
+	Description
+	id
+	BIGINT
+	PK, Auto-Increment
+	Unique Agent ID
+	name
+	VARCHAR(255)
+	NOT NULL
+	Agent/Agency Name
+	email
+	VARCHAR(255)
+	UNIQUE
+	Agent's email for reports
+	phone_number
+	VARCHAR(20)
+	
+
+	Agent's contact phone number
+	created_at
+	DATETIME
+	
+
+	
+
+	2.3 Table: CAR
+Field
+	Data Type
+	Constraint
+	Description
+	id
+	BIGINT
+	PK, Auto-Increment
+	Unique Car ID
+	agent_id
+	BIGINT
+	FK (AGENT.id)
+	Owning agent/agency
+	plate_number
+	VARCHAR(50)
+	UNIQUE
+	License plate number (Crucial for AI check)
+	type
+	VARCHAR(50)
+	
+
+	Sedan, SUV, etc.
+	brand
+	VARCHAR(100)
+	
+
+	Toyota, Ford, etc.
+	model
+	VARCHAR(100)
+	
+
+	Corolla, F-150, etc.
+	color
+	VARCHAR(50)
+	
+
+	
+
+	year
+	INT
+	
+
+	Year of manufacture
+	gear_type
+	VARCHAR(10)
+	
+
+	Auto/Manual
+	status
+	VARCHAR(20)
+	
+
+	Available/In_Use
+	2.4 Table: RENTAL
+Field
+	Data Type
+	Constraint
+	Description
+	id
+	BIGINT
+	PK, Auto-Increment
+	Unique Rental ID
+	user_id
+	BIGINT
+	FK (USER.id)
+	User who rented the car
+	car_id
+	BIGINT
+	FK (CAR.id)
+	Car being rented
+	start_date
+	DATETIME
+	NOT NULL
+	Rental initiation time (system date)
+	end_date
+	DATETIME
+	
+
+	Rental return time
+	ai_report
+	TEXT
+	
+
+	JSON/Markdown of final damage report
+	status
+	VARCHAR(20)
+	
+
+	Active/Completed
+	2.5 New Table: RENTAL_IMAGES (Image BLOB Storage)
+This table centralizes all image storage and uses the LONGBLOB type to hold the image binary data directly.
+Field
+	Data Type
+	Constraint
+	Description
+	id
+	BIGINT
+	PK, Auto-Increment
+	Unique Image ID
+	rental_id
+	BIGINT
+	FK (RENTAL.id)
+	Links to the specific rental transaction.
+	image_name
+	VARCHAR(255)
+	NOT NULL
+	Name/Angle (e.g., 'front_side_rent', 'driver_side_return')
+	image_type
+	VARCHAR(50)
+	NOT NULL
+	MIME Type (e.g., 'image/jpeg')
+	image_data
+	LONGBLOB
+	NOT NULL
+	The binary image data (BLOB).
+	upload_date
+	DATETIME
+	DEFAULT
+	Timestamp of when the image was uploaded.
+	is_validated
+	BOOLEAN
+	DEFAULT 0
+	Flag indicating Gemini AI validation success.
+	CREATE TABLE RENTAL_IMAGES (
+   id BIGINT AUTO_INCREMENT PRIMARY KEY,
+   rental_id BIGINT NOT NULL,
+   image_name VARCHAR(255) NOT NULL,
+   image_type VARCHAR(50),
+   image_data LONGBLOB NOT NULL,
+   upload_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+   is_validated BOOLEAN DEFAULT 0,
+   CONSTRAINT fk_rental
+       FOREIGN KEY (rental_id)
+       REFERENCES RENTAL(id)
+       ON DELETE CASCADE
+       ON UPDATE CASCADE
+);
+
+3. API Specification (Spring Boot Backend)
+All APIs require authentication except for /api/auth/login.
+ID
+	Endpoint
+	Method
+	Purpose
+	Request Body
+	Response Body
+	AUTH-1
+	/api/auth/login
+	POST
+	Authenticate user.
+	{username, password}
+	{token, user_id} or Error
+	CAR-1
+	/api/cars/available
+	GET
+	Get available cars for rent (Screen 3A).
+	param: type=rent
+	List<Car>
+	RENTAL-1
+	/api/rentals/active
+	GET
+	Get active rentals for the user (Screen 3B).
+	param: user_id
+	List<Rental> (with Car info)
+	RENTAL-2
+	/api/rentals/start
+	POST
+	Create a new rental record (Screen 3A confirmation).
+	{car_id, user_id}
+	Rental object
+	IMAGE-1
+	/api/rentals/{id}/upload-photo
+	POST
+	Upload image blob to RENTAL_IMAGES.
+	File, form-data: {side, plate_number}
+	{success: true, ai_validation: "..."} or Error
+	RENTAL-3
+	/api/rentals/{id}
+	GET
+	Retrieve specific rental record (Screen 3B selection).
+	Path variable id
+	Rental object
+	RENTAL-4
+	/api/rentals/{id}/finish-return
+	POST
+	Finalize return, trigger AI damage analysis, and update status.
+	{user_id}
+	{report_url, status: "completed"} or Error
+	IMAGE-2
+	/api/rentals/image/{image_id}
+	GET
+	Retrieve a specific image blob for display/comparison.
+	Path variable image_id
+	image/jpeg or image/png data
+	4. AI Integration (Gemini API)
+The backend service is responsible for constructing the prompt and calling the Gemini API.
+4.1 Image Validation (Screens 4A-8A and 4B-8B)
+This is a critical step to prevent fraud and ensure photo quality.
+* Process Change: When the frontend uploads an image, the backend saves the LONGBLOB to RENTAL_IMAGES. It then reads the LONGBLOB, converts it to Base64, and sends it to Gemini for validation. If validation is successful, the is_validated flag in RENTAL_IMAGES is set to 1.
+Angle
+	Gemini Prompt Component
+	Database Input
+	Front/Back
+	"Does this image clearly show the
+$$Front/Back$$
+of a car? Is the license plate clearly visible? Does the visible plate number match this string:
+$$Car.plate\_number$$
+? Respond with YES or NO and explain why."
+	Car.plate_number
+	Sides/Roof
+	"Does this image clearly show the
+$$Driver Side/Passenger Side/Roof$$
+of a car? Does the angle/perspective match the request? Respond with YES or NO and explain why."
+	Car.model (optional for context)
+	4.2 Final Damage Assessment (Screen 8B)
+The most complex API call, involving multiple image parts for comparison.
+* Process Change: The backend must query the RENTAL_IMAGES table (10 times, once for each required image_name / angle) to retrieve the LONGBLOB data, convert each blob to Base64, and package them all into the multi-part Gemini payload.
+* Endpoint: gemini-2.5-flash-preview-09-2025:generateContent
+* Prompt: A structured prompt instructing Gemini to compare all 5 RENT photos with all 5 RETURN photos and generate a detailed report, including damage type, location, severity, and estimated cost (as requested in the functional specification, Section 4.2 FR2.5).
+* Action: The backend sends the 10 photos (Base64) and the comparison prompt.
+* Response: Gemini returns a structured JSON or Markdown report, which is saved to RENTAL.ai_report and used to generate a PDF for email.
+5. User Flow and Screen Specification
+Screen 1: Login
+* Purpose: User authentication.
+* Fields: Username (Email), Password.
+* Action: Click Login.
+* System: Fires AUTH-1 (POST /api/auth/login). Displays error message on failure.
+Screen 2: Main Menu
+* Purpose: Choose the type of transaction.
+* Buttons: Rent (A), Return (B).
+* Action:
+   * Rent (A): Triggers CAR-1 (GET /api/cars/available?type=rent). Navigates to Screen 3A.
+   * Return (B): Triggers RENTAL-1 (GET /api/rentals/active?user_id=[current_user]). Navigates to Screen 3B.
+Flow A: Rent (Vehicle Pickup)
+Screen
+	Title
+	Purpose
+	User Action
+	System/API Action
+	Next Screen
+	3A
+	Select Car for Rent
+	Display available cars in a table.
+	User selects a car and clicks Next.
+	1. Confirmation modal. 2. Fires RENTAL-2 (POST /api/rentals/start) to create new rental record.
+	4A
+	4A
+	Front Photo
+	Upload Front Photo.
+	User uploads photo, clicks Submit.
+	Fires IMAGE-1 (POST /api/rentals/{id}/upload-photo) with side=front. AI check: Plate match + Angle. Updates RENTAL_IMAGES with blob and sets is_validated.
+	5A
+	5A
+	Back Photo
+	Upload Back Photo.
+	User uploads photo, clicks Submit.
+	Fires IMAGE-1 (POST /api/rentals/{id}/upload-photo) with side=back. AI check: Plate match + Angle. Updates RENTAL_IMAGES with blob and sets is_validated.
+	6A
+	6A
+	Driver Side Photo
+	Upload Driver Side Photo.
+	User uploads photo, clicks Submit.
+	Fires IMAGE-1 (POST /api/rentals/{id}/upload-photo) with side=driver. AI check: Angle. Updates RENTAL_IMAGES with blob and sets is_validated.
+	7A
+	7A
+	Passenger Side Photo
+	Upload Passenger Side Photo.
+	User uploads photo, clicks Submit.
+	Fires IMAGE-1 (POST /api/rentals/{id}/upload-photo) with side=passenger. AI check: Angle. Updates RENTAL_IMAGES with blob and sets is_validated.
+	8A
+	8A
+	Roof Photo
+	Upload Roof Photo.
+	User uploads photo, clicks Submit.
+	Fires IMAGE-1 (POST /api/rentals/{id}/upload-photo) with side=roof. AI check: Angle. Updates RENTAL_IMAGES with blob and sets is_validated.
+	Confirmation
+	Confirmation
+	Enjoy Your Ride!
+	Final step.
+	User views notification.
+	1. Backend changes CAR.status to In_Use. 2. External API call (mocked). 3. Saves final RENTAL record.
+	Main Menu (2)
+	Flow B: Return (Vehicle Inspection)
+Screen
+	Title
+	Purpose
+	User Action
+	System/API Action
+	Next Screen
+	3B
+	Select Car for Return
+	Display active rentals by user.
+	User selects car and clicks Next.
+	1. Confirmation modal. 2. Fires RENTAL-3 (GET /api/rentals/{id}) to load the pickup data.
+	4B
+	4B
+	Front Return Photo
+	Upload Front Photo.
+	User uploads photo, clicks Submit.
+	Fires IMAGE-1 (POST /api/rentals/{id}/upload-photo) with side=front, type=return. AI check: Plate match + Angle. Updates RENTAL_IMAGES with blob and sets is_validated.
+	5B
+	5B
+	Back Return Photo
+	Upload Back Photo.
+	User uploads photo, clicks Submit.
+	Fires IMAGE-1 (POST /api/rentals/{id}/upload-photo) with side=back, type=return. AI check: Plate match + Angle. Updates RENTAL_IMAGES with blob and sets is_validated.
+	6B
+	6B
+	Driver Side Return
+	Upload Driver Side Photo.
+	User uploads photo, clicks Submit.
+	Fires IMAGE-1 (POST /api/rentals/{id}/upload-photo) with side=driver, type=return. AI check: Angle. Updates RENTAL_IMAGES with blob and sets is_validated.
+	7B
+	7B
+	Passenger Side Return
+	Upload Passenger Side Photo.
+	User uploads photo, clicks Submit.
+	Fires IMAGE-1 (POST /api/rentals/{id}/upload-photo) with side=passenger, type=return. AI check: Angle. Updates RENTAL_IMAGES with blob and sets is_validated.
+	8B
+	8B
+	Roof Return Photo
+	Upload Roof Photo.
+	User uploads photo, clicks Submit.
+	Fires IMAGE-1 (POST /api/rentals/{id}/upload-photo) with side=roof, type=return. AI check: Angle. Updates RENTAL_IMAGES with blob and sets is_validated.
+	Analysis
+	Analysis
+	AI Damage Analysis
+	Triggers final AI comparison.
+	Automatic after 8B submission.
+	1. Fires RENTAL-4 (POST /api/rentals/{id}/finish-return). 2. Backend executes Gemini API comparison with 10 photos retrieved as blobs from RENTAL_IMAGES.
+	Report/Email
+	Report/Email
+	Return Complete
+	Display and email report.
+	User views summary.
+	1. Backend sends report PDF to User/Agent email. 2. Backend changes CAR.status to Available. 3. External API call (mocked). 4. Updates final RENTAL record.
+	Main Menu (2)
+	6. Development Notes
+* Error Handling: Every API call must include robust error handling, returning user-friendly messages for Angular to display (e.g., "The license plate could not be verified by the AI. Please try again or contact an agent.").
+* Security: Passwords must be hashed. All APIs must be secured using JWT or similar token-based authentication.
+* Image Storage (BLOB Note): Storing images as LONGBLOB requires careful management by the Java/Spring Boot backend to handle the large binary data efficiently, especially when retrieving, converting to Base64, and sending to the Gemini API.
+* PDF Generation: The Spring Boot backend will be responsible for taking the structured JSON/Markdown AI report and rendering it into a formatted PDF before emailing it to the agent and user.

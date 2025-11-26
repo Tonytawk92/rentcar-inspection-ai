@@ -14,6 +14,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Custom filter to intercept incoming requests and validate JSON Web Tokens (JWTs).
+ * This filter runs once per request and ensures that authenticated requests have a valid JWT.
+ */
 @Component
 public class JwtRequestFilter extends OncePerRequestFilter {
 
@@ -23,6 +27,15 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     @Autowired
     private JwtUtil jwtUtil;
 
+    /**
+     * Performs the actual filtering logic.
+     * Extracts the JWT from the Authorization header, validates it, and sets the security context.
+     * @param request The {@link HttpServletRequest} to filter.
+     * @param response The {@link HttpServletResponse} to filter.
+     * @param chain The {@link FilterChain} for invoking the next filter in the chain.
+     * @throws ServletException if a servlet-specific error occurs.
+     * @throws IOException if an I/O error occurs.
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
@@ -32,11 +45,13 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         String username = null;
         String jwt = null;
 
+        // Extract JWT from Authorization header
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             jwt = authorizationHeader.substring(7);
             username = jwtUtil.extractUsername(jwt);
         }
 
+        // Validate JWT and set security context
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);

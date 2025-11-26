@@ -9,16 +9,29 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+/**
+ * Main entry point for the Car Rental Spring Boot application.
+ */
 @SpringBootApplication
 public class RentcarBackendApplication {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    /**
+     * The main method, which is the entry point for the application.
+     * @param args Command line arguments.
+     */
     public static void main(String[] args) {
         SpringApplication.run(RentcarBackendApplication.class, args);
     }
 
+    /**
+     * A CommandLineRunner bean that runs on application startup.
+     * It creates a default user for testing purposes.
+     * @param userRepository The repository for User entities.
+     * @return A CommandLineRunner instance.
+     */
     @Bean
     public CommandLineRunner loadData(UserRepository userRepository) {
         return (args) -> {

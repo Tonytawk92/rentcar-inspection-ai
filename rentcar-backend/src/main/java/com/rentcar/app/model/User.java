@@ -5,7 +5,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Represents a user in the application.
@@ -14,6 +16,8 @@ import lombok.Data;
  * toString, equals, and hashCode methods.
  */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "USER_DETAILS") // "USER" is often a reserved keyword in SQL databases.
 public class User {

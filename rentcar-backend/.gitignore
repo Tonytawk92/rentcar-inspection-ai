@@ -21,6 +21,7 @@ logs/
 *.war
 *.ear
 *.zip
+*.class
 tmp/
 temp/
 

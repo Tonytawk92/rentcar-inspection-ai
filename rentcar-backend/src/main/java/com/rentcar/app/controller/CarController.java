@@ -10,6 +10,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * REST controller for managing car-related operations.
+ */
 @RestController
 @RequestMapping("/api/cars")
 public class CarController {
@@ -18,11 +21,16 @@ public class CarController {
     private CarRepository carRepository;
 
     /**
-     * Retrieves a list of cars based on their status.
-     * To get available cars, the frontend should call this endpoint
-     * with the query parameter `status=Available`.
+     * Retrieves a list of cars based on their current status.
+     * This endpoint corresponds to CAR-1 in the design document and is used
+     * to fetch available cars for rent.
+     * <p>
+     * Example Usage:
+     * {@code GET /api/cars/available?status=Available}
+     *
      * @param status The status to filter cars by (e.g., "Available", "In_Use").
-     * @return A list of cars matching the status.
+     *               This parameter is required.
+     * @return A {@link List} of {@link Car} objects matching the specified status.
      */
     @GetMapping("/available")
     public List<Car> getCarsByStatus(@RequestParam String status) {

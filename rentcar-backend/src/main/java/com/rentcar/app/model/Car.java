@@ -2,36 +2,89 @@ package com.rentcar.app.model;
 
 import jakarta.persistence.*;
 
+/**
+ * Represents a car in the rental system.
+ * This class is a JPA entity that maps to the "CAR" table in the database.
+ */
 @Entity
 @Table(name = "CAR")
 public class Car {
 
+    /**
+     * The unique identifier for the car.
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * The agent or agency that owns the car.
+     */
     @ManyToOne
     @JoinColumn(name = "agent_id", nullable = false)
     private Agent agent;
 
+    /**
+     * The license plate number of the car. This is a crucial field for AI validation.
+     */
     @Column(name = "plate_number", unique = true, nullable = false)
     private String plateNumber;
 
+    /**
+     * The type of car (e.g., Sedan, SUV).
+     */
     private String type;
+
+    /**
+     * The brand of the car (e.g., Toyota, Ford).
+     */
     private String brand;
+
+    /**
+     * The model of the car (e.g., Corolla, F-150).
+     */
     private String model;
+
+    /**
+     * The color of the car.
+     */
     private String color;
+
+    /**
+     * The year the car was manufactured.
+     */
     @Column(name = "manufacture_year")
     private Integer manufactureYear;
 
+    /**
+     * The gear type of the car (e.g., Auto, Manual).
+     */
     @Column(name = "gear_type")
     private String gearType;
 
-    private String status; // Available/In_Use
+    /**
+     * The current status of the car (e.g., Available, In_Use).
+     */
+    private String status;
 
+    /**
+     * Default constructor for JPA.
+     */
     public Car() {
     }
 
+    /**
+     * Constructs a new Car with the specified details.
+     * @param agent The owning agent.
+     * @param plateNumber The license plate number.
+     * @param type The car type.
+     * @param brand The car brand.
+     * @param model The car model.
+     * @param color The car color.
+     * @param manufactureYear The year of manufacture.
+     * @param gearType The gear type.
+     * @param status The current status.
+     */
     public Car(Agent agent, String plateNumber, String type, String brand, String model, String color, Integer manufactureYear, String gearType, String status) {
         this.agent = agent;
         this.plateNumber = plateNumber;

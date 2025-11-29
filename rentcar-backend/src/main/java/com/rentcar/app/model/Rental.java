@@ -1,7 +1,7 @@
 package com.rentcar.app.model;
 
 import jakarta.persistence.*;
-import java.util.Date;
+import java.time.LocalDateTime; // Use LocalDateTime
 
 /**
  * Represents a single rental transaction in the system.
@@ -37,15 +37,13 @@ public class Rental {
      * The timestamp when the rental period started.
      */
     @Column(name = "start_date", nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date startDate;
+    private LocalDateTime startDate; // Changed to LocalDateTime
 
     /**
      * The timestamp when the rental period ended. Can be null for active rentals.
      */
     @Column(name = "end_date")
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date endDate;
+    private LocalDateTime endDate; // Changed to LocalDateTime
 
     /**
      * A JSON or Markdown report of the final damage assessment from the AI service.
@@ -89,19 +87,19 @@ public class Rental {
         this.car = car;
     }
 
-    public Date getStartDate() {
+    public LocalDateTime getStartDate() {
         return startDate;
     }
 
-    public void setStartDate(Date startDate) {
+    public void setStartDate(LocalDateTime startDate) {
         this.startDate = startDate;
     }
 
-    public Date getEndDate() {
+    public LocalDateTime getEndDate() {
         return endDate;
     }
 
-    public void setEndDate(Date endDate) {
+    public void setEndDate(LocalDateTime endDate) {
         this.endDate = endDate;
     }
 
